@@ -286,10 +286,10 @@ class OnnxConverter(base_converter.ConverterInterface):
 
     activation_type = {
         OnnxOpType.Relu.name: ActivationType.RELU,
+        OnnxOpType.LeakyRelu.name: ActivationType.LEAKYRELU,
         OnnxOpType.PRelu.name: ActivationType.PRELU,
         OnnxOpType.Tanh.name: ActivationType.TANH,
         OnnxOpType.Sigmoid.name: ActivationType.SIGMOID,
-        OnnxOpType.LeakyRelu.name: ActivationType.LEAKYRELU,
     }
 
     def __init__(self, option, src_model_file):
@@ -585,13 +585,10 @@ class OnnxConverter(base_converter.ConverterInterface):
         type_arg.name = MaceKeyword.mace_activation_type_str
         type_arg.s = six.b(self.activation_type[node.op_type].name)
 
-        if "alpha" in node.attrs:
-            alpha_value = node.attrs["alpha"]
-        else:
-            alpha_value = 0
-        alpha_arg = op.arg.add()
-        alpha_arg.name = MaceKeyword.mace_activation_max_limit_str
-        alpha_arg.f = alpha_value
+        if node.op_type == OnnxOpType.LeakyRelu.name:
+            alpha_arg = op.arg.add()
+            alpha_arg.name = MaceKeyword.mace_activation_leakyrelu_coefficient_str  # noqa
+            alpha_arg.f = node.attrs["alpha"]
 
     def convert_pooling(self, node):
         op = self.convert_general_op(node)

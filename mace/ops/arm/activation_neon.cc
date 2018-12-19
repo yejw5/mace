@@ -75,18 +75,21 @@ void LeakyReluNeon(const float *input, const float alpha,
 #pragma omp parallel for schedule(runtime)
   for (index_t i = 0; i <= size - 4; i += 4) {
     float32x4_t v = vld1q_f32(input + i);
-    v = vmaxq_f32(v, vzero);
-    v = vmulq_f32(v, valpha);
+    float32x4_t positive, negative;
+    positive = vmaxq_f32(v, vzero);
+    negative = vminq_f32(v, vzero);
+    v = vmlaq_f32(positive, valpha, negative);
     vst1q_f32(output + i, v);
   }
   // remain
   for (index_t i = (size >> 2) << 2; i < size; ++i) {
-    output[i] = std::max(input[i], 0.f) * alpha;
+    output[i] = std::max(input[i], 0.f) + alpha * std::min(input[i], 0.f);
   }
 #else
 #pragma omp parallel for schedule(runtime)
   for (index_t i = 0; i < size; ++i) {
-    output[i] = std::max(input[i], 0.f) * alpha;
+    output[i] = std::max(input[i], 0.f)
+        + alpha * std::min(input[i], 0.f);
   }
 #endif
 }
